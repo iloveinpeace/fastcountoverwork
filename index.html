@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>快速計算時數</title>
+    <meta
+      name="description"
+      content="快速輸入員工上下班時間，自動計算實際工時、每日加班與 CSV 匯出。"
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./style.css" />
+    <script src="./script.js" defer></script>
+  </head>
+  <body>
+    <div class="page-shell">
+      <header class="hero">
+        <div>
+          <p class="eyebrow">GitHub Pages 版</p>
+          <h1>員工打卡工時快速計算器</h1>
+          <p class="hero-copy">
+            左邊手動輸入或快速輸入，右邊即時整理每天的實際工時與超過 8 小時的加班時數。
+          </p>
+        </div>
+        <div class="hero-stats">
+          <div class="stat-card">
+            <span>每日工時門檻</span>
+            <strong>8 小時</strong>
+          </div>
+          <div class="stat-card">
+            <span>資料儲存</span>
+            <strong>瀏覽器本機</strong>
+          </div>
+        </div>
+      </header>
+
+      <main class="workspace">
+        <section class="panel panel-input">
+          <div class="panel-header">
+            <h2>左側輸入區</h2>
+            <p>一般輸入搭配快速輸入，讓人資可以連續鍵盤操作。</p>
+          </div>
+
+          <div class="card">
+            <div class="card-title-row">
+              <h3>新增 / 編輯打卡</h3>
+              <span id="formModeBadge" class="badge">新增模式</span>
+            </div>
+
+            <form id="shiftForm" class="form-grid">
+              <input type="hidden" id="recordId" />
+
+              <label>
+                員工姓名（選填）
+                <input id="employeeName" name="employeeName" type="text" placeholder="可留空，像人資快速試算時可不填" />
+              </label>
+
+              <label>
+                日期
+                <input id="shiftDate" name="shiftDate" type="date" required />
+              </label>
+
+              <label>
+                上班時間
+                <input
+                  id="clockIn"
+                  name="clockIn"
+                  type="text"
+                  inputmode="numeric"
+                  placeholder="例如 0810 或 08:10"
+                  autocomplete="off"
+                  required
+                />
+              </label>
+
+              <label>
+                下班時間
+                <input
+                  id="clockOut"
+                  name="clockOut"
+                  type="text"
+                  inputmode="numeric"
+                  placeholder="例如 1730 或 17:30"
+                  autocomplete="off"
+                  required
+                />
+              </label>
+
+              <label>
+                休息分鐘
+                <input id="breakMinutes" name="breakMinutes" type="number" min="0" step="1" value="0" />
+              </label>
+
+              <label>
+                備註
+                <input id="notes" name="notes" type="text" placeholder="例如：晚班 / 補班" />
+              </label>
+
+              <div class="button-row span-2">
+                <button type="submit" class="primary-btn">一鍵計算並加入</button>
+                <button type="button" id="resetFormBtn" class="ghost-btn">清空表單</button>
+              </div>
+            </form>
+          </div>
+
+          <div class="card">
+            <div class="card-title-row">
+              <h3>快速輸入</h3>
+              <span class="subtle">按 Enter 直接加入</span>
+            </div>
+
+            <form id="quickEntryForm" class="quick-entry-form">
+              <label class="full-width">
+                快速輸入框
+                <input
+                  id="quickEntryInput"
+                  type="text"
+                  inputmode="numeric"
+                  placeholder="例如 0401,0900,1800"
+                  autocomplete="off"
+                />
+              </label>
+              <div class="button-row">
+                <button type="submit" class="primary-btn">快速加入</button>
+              </div>
+            </form>
+
+            <p class="hint-text">
+              格式支援 `0401,0900,1800`、`4/1,09:00,18:00`。若上方姓名有填，新增紀錄會自動帶入。
+            </p>
+            <p class="hint-text">
+              快速輸入預設休息分鐘為 0；若要調整休息或備註，再用上方一般輸入即可。
+            </p>
+          </div>
+
+          <div class="card">
+            <div class="card-title-row">
+              <h3>原始資料明細</h3>
+              <div class="button-row compact">
+                <button type="button" id="exportCsvBtn" class="secondary-btn">匯出 CSV</button>
+                <button type="button" id="clearAllBtn" class="danger-btn">清空全部</button>
+              </div>
+            </div>
+
+            <div id="recordsEmpty" class="empty-state">目前還沒有打卡資料。</div>
+            <div class="table-wrap">
+              <table id="recordsTable">
+                <thead>
+                  <tr>
+                    <th>員工</th>
+                    <th>日期</th>
+                    <th>上下班</th>
+                    <th>休息</th>
+                    <th>實際工時</th>
+                    <th>加班</th>
+                    <th>操作</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <aside class="panel panel-output">
+          <div class="panel-header">
+            <h2>右側每日摘要</h2>
+            <p>依員工與日期彙總，快速看出每天實際上班與加班狀況。</p>
+          </div>
+
+          <div class="summary-top">
+            <div class="metric-card">
+              <span>累積筆數</span>
+              <strong id="totalRecords">0</strong>
+            </div>
+            <div class="metric-card">
+              <span>總實際工時</span>
+              <strong id="totalWorked">0 小時 0 分</strong>
+            </div>
+            <div class="metric-card">
+              <span>總加班</span>
+              <strong id="totalOvertime">0 小時 0 分</strong>
+            </div>
+          </div>
+
+          <div class="card summary-card">
+            <div class="card-title-row">
+              <h3>每日工時總覽</h3>
+              <span class="subtle">超過 8 小時即列為加班</span>
+            </div>
+            <div id="summaryEmpty" class="empty-state">加入資料後，這裡會列出每日工時與加班摘要。</div>
+            <div id="summaryList" class="summary-list"></div>
+          </div>
+        </aside>
+      </main>
+    </div>
+  </body>
+</html>
